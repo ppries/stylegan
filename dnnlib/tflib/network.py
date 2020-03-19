@@ -326,7 +326,7 @@ class Network:
 
     def copy_trainables_from(self, src_net: "Network") -> None:
         """Copy the values of all trainable variables from the given network, including sub-networks."""
-        names = [name for name in self.trainables.keys() if name in src_net.trainables]
+        names = [name for name in self.trainables.keys() if name in src_net.trainables and 'RGB' not in name]
         tfutil.set_vars(tfutil.run({self.vars[name]: src_net.vars[name] for name in names}))
 
     def convert(self, new_func_name: str, new_name: str = None, **new_static_kwargs) -> "Network":

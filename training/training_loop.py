@@ -150,7 +150,17 @@ def training_loop(
         if resume_run_id is not None:
             network_pkl = misc.locate_network_pkl(resume_run_id, resume_snapshot)
             print('Loading networks from "%s"...' % network_pkl)
-            G, D, Gs = misc.load_pkl(network_pkl)
+            G_load, D_load, Gs_load = misc.load_pkl(network_pkl)
+
+            # Creating new network of the size we actually want, so we can copy
+            # over variables we need.
+            G = tflib.Network('G', num_channels=training_set.shape[0], resolution=training_set.shape[1], label_size=training_set.label_size, **G_args)
+            D = tflib.Network('D', num_channels=training_set.shape[0], resolution=training_set.shape[1], label_size=training_set.label_size, **D_args)
+            Gs = G.clone('Gs')
+
+            G.copy_trainables_from(G_load)
+            D.copy_trainables_from(D_load)
+            Gs.copy_trainables_from(Gs_load)
         else:
             print('Constructing networks...')
             G = tflib.Network('G', num_channels=training_set.shape[0], resolution=training_set.shape[1], label_size=training_set.label_size, **G_args)
@@ -229,6 +239,7 @@ def training_loop(
             for _D_repeat in range(D_repeats):
                 tflib.run([D_train_op, Gs_update_op], {lod_in: sched.lod, lrate_in: sched.D_lrate, minibatch_in: sched.minibatch})
                 cur_nimg += sched.minibatch
+
             tflib.run([G_train_op], {lod_in: sched.lod, lrate_in: sched.G_lrate, minibatch_in: sched.minibatch})
 
         # Perform maintenance tasks once per tick.
